@@ -1,0 +1,6 @@
+/build/install/bin
+/build/install/hostbin
+/build/install/sbin
+/build/install/testbin
+/build/urserland
+*.o
