@@ -59,4 +59,10 @@ __DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
 int sys_reboot(int code);
 int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 
+/*
+ * Lab 2 - Syscalls read and write
+ */
+ssize_t sys_write(int fd, const void* buffer, ssize_t len);
+ssize_t sys_read(int fd, void* buffer, ssize_t len);
+
 #endif /* _SYSCALL_H_ */
