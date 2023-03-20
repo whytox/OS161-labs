@@ -4,3 +4,4 @@
 /build/install/testbin
 /build/urserland
 *.o
+/kern/compile/HELLO

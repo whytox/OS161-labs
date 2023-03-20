@@ -51,6 +51,7 @@
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
 
+#include "hello.h" // hello function
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -101,7 +102,7 @@ boot(void)
 	kprintf("%s", harvard_copyright);
 	kprintf("\n");
 
-	kprintf("Put-your-group-name-here's system version %s (%s #%d)\n",
+	kprintf("Whytox, system version %s (%s #%d)\n",
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
 
@@ -210,6 +211,7 @@ kmain(char *arguments)
 {
 	boot();
 
+	hello();
 	menu(arguments);
 
 	/* Should not get here */
