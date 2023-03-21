@@ -6,8 +6,9 @@
 ssize_t sys_write(int fd, const void* buffer, ssize_t len) {
 
     if (fd != 1) return 0; // only on standard output, for now...
+    char* c_buffer = ((char*)buffer);
     for (ssize_t i=0; i<len; i++) {
-        putch( ((char*)buffer)[i]);
+        putch(c_buffer[i]);
     }
     return len;
 }

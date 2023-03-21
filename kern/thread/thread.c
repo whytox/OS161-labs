@@ -271,6 +271,9 @@ thread_destroy(struct thread *thread)
 	 * If you add things to struct thread, be sure to clean them up
 	 * either here or in thread_exit(). (And not both...)
 	 */
+	// even if we addded exit_code, we don't need to explicitly
+	// free it since it's not a pointer
+
 
 	/* Thread subsystem fields */
 	KASSERT(thread->t_proc == NULL);
@@ -732,7 +735,7 @@ thread_switch(threadstate_t newstate, struct wchan *wc, struct spinlock *lk)
  * ENTRYPOINT, DATA1, and DATA2 are passed through from thread_fork.
  *
  * Because new code comes here from inside the middle of
- * thread_switch, the beginning part of this function must match the
+ * thread_switch, the beginning part of this function must match theù
  * tail of thread_switch.
  */
 void
@@ -782,6 +785,11 @@ thread_exit(void)
 
 	cur = curthread;
 
+	if (cur->t_proc->p_numthreads == 1) {
+		// if we are the last thread of our parent process
+		// destroy the address space
+		as_destroy(cur->t_proc->p_addrspace);
+	}
 	/*
 	 * Detach from our process. You might need to move this action
 	 * around, depending on how your wait/exit works.

@@ -107,6 +107,7 @@ struct thread {
 	 */
 
 	/* add more here as needed */
+	int exit_code; // for sys_exit, lab2
 };
 
 /*

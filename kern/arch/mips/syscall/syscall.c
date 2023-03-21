@@ -35,7 +35,8 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
-
+#include "opt-exit_syscall.h"
+#include "opt-file_syscalls.h"
 
 /*
  * System call dispatcher.
@@ -99,7 +100,7 @@ syscall(struct trapframe *tf)
 
 	retval = 0;
 
-	switch (callno) {
+	switch (callno) {			
 	    case SYS_reboot:
 		err = sys_reboot(tf->tf_a0);
 		break;
@@ -110,6 +111,14 @@ syscall(struct trapframe *tf)
 		break;
 
 	    /* Add stuff here */
+#if OPT_EXIT_SYSCALL
+		case SYS__exit:
+			err = 0;
+			sys__exit((int)tf->tf_a0);
+			break;
+#endif
+
+#if OPT_FILE_SYSCALLS
 		case SYS_read:
 			retval = sys_read((int)tf->tf_a0, (void*)tf->tf_a1, (ssize_t)tf->tf_a2);
 			err = 0;
@@ -118,6 +127,7 @@ syscall(struct trapframe *tf)
 			retval = sys_write((int)tf->tf_a0, (void*)tf->tf_a1, (ssize_t)tf->tf_a2);
 			err = 0;
 			break;
+#endif
 	    default:
 		kprintf("Unknown syscall %d\n", callno);
 		err = ENOSYS;

@@ -33,4 +33,5 @@ options sfs			# Always use the file system
 
 options dumbvm			# Chewing gum and baling wire.
 options hello
-options lab2
+options file_syscalls
+options exit_syscall

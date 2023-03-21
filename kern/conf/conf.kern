@@ -456,5 +456,7 @@ optfile hello main/hello.c
 #              Lab 02                  #
 #                                      #
 ########################################
-defoption lab2
-optfile lab2 syscall/file_syscalls.c
+defoption file_syscalls
+optfile file_syscalls syscall/file_syscalls.c
+defoption exit_syscall
+optfile exit_syscall syscall/exit_syscall.c
