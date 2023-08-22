@@ -39,6 +39,8 @@
 #include <thread.h>
 #include <current.h>
 #include <synch.h>
+#include "opt-lock_1.h"
+#include "opt-lock_2.h"
 
 ////////////////////////////////////////////////////////////
 //
@@ -154,9 +156,29 @@ lock_create(const char *name)
                 return NULL;
         }
 
-	HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
+	//HANGMAN_LOCKABLEINIT(&lock->lk_hangman, lock->lk_name);
 
         // add stuff here as needed
+        #if OPT_LOCK_1
+
+                lock->lk_owner = NULL;
+                // implementation as a semaphore holding a single resource
+                // (initial_count = 1)
+                lock->lk_sem = sem_create(lock->lk_name, 1);
+
+        #elif OPT_LOCK_2
+
+                lock->lk_owner = NULL;
+                lock->lk_wchan = wchan_create(lock->lk_name);
+                if (lock->lk_wchan == NULL) {
+                        kfree(lock->lk_wchan);
+                        kfree(lock);
+                        return NULL;
+                }
+
+                spinlock_init(&lock->lk_lock);
+
+        #endif
 
         return lock;
 }
@@ -167,6 +189,14 @@ lock_destroy(struct lock *lock)
         KASSERT(lock != NULL);
 
         // add stuff here as needed
+        #if OPT_LOCK_1
+                //kfree(lock->lk_owner); // I guess this would destroy the curthread struct
+                kfree(lock->lk_sem);
+        #elif OPT_LOCK_2
+                
+                kfree(lock->lk_wchan);
+
+        #endif
 
         kfree(lock->lk_name);
         kfree(lock);
@@ -176,14 +206,23 @@ void
 lock_acquire(struct lock *lock)
 {
 	/* Call this (atomically) before waiting for a lock */
-	//HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
+	HANGMAN_WAIT(&curthread->t_hangman, &lock->lk_hangman);
 
         // Write this
+        #if OPT_LOCK_1
 
-        (void)lock;  // suppress warning until code gets written
+                P(lock->lk_sem);
+                lock->lk_owner = curthread;
 
+        #elif OPT_LOCK_2
+                lock->lk_owner = curthread;
+                (void)lock;
+
+        #else
+                (void)lock;  // suppress warning until code gets written
+        #endif
 	/* Call this (atomically) once the lock is acquired */
-	//HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
+	HANGMAN_ACQUIRE(&curthread->t_hangman, &lock->lk_hangman);
 }
 
 void
@@ -194,7 +233,18 @@ lock_release(struct lock *lock)
 
         // Write this
 
-        (void)lock;  // suppress warning until code gets written
+        #if OPT_LOCK_1
+                KASSERT(lock_do_i_hold(lock));
+        
+                lock->lk_owner = NULL;
+                V(lock->lk_sem);
+        
+        #elif OPT_LOCK_2
+                KASSERT(lock_do_i_hold(lock));
+                (void)lock;
+        #else
+                (void)lock;  // suppress warning until code gets written
+        #endif
 }
 
 bool
@@ -202,9 +252,14 @@ lock_do_i_hold(struct lock *lock)
 {
         // Write this
 
-        (void)lock;  // suppress warning until code gets written
-
-        return true; // dummy until code gets written
+        #if OPT_LOCK_1 || OPT_LOCK_2
+                return lock->lk_owner == curthread;
+        #else
+                (void)lock;  // suppress warning until code gets written
+                ; // dummy until code gets written
+        #endif
+        (void)lock;
+        return true;
 }
 
 ////////////////////////////////////////////////////////////
