@@ -215,9 +215,15 @@ lock_acquire(struct lock *lock)
                 lock->lk_owner = curthread;
 
         #elif OPT_LOCK_2
+                
+                
+                
+                spinlock_acquire(&lock->lk_lock);
+                while (lock->lk_owner != NULL) {
+                        wchan_sleep(lock->lk_wchan, &lock->lk_lock);
+                }
                 lock->lk_owner = curthread;
-                (void)lock;
-
+                spinlock_release(&lock->lk_lock);
         #else
                 (void)lock;  // suppress warning until code gets written
         #endif
@@ -241,7 +247,13 @@ lock_release(struct lock *lock)
         
         #elif OPT_LOCK_2
                 KASSERT(lock_do_i_hold(lock));
-                (void)lock;
+                
+                spinlock_acquire(&lock->lk_lock);
+                wchan_wakeall(lock->lk_wchan, &lock->lk_lock);
+                lock->lk_owner = NULL;
+                spinlock_release(&lock->lk_lock);
+
+                
         #else
                 (void)lock;  // suppress warning until code gets written
         #endif
@@ -255,11 +267,11 @@ lock_do_i_hold(struct lock *lock)
         #if OPT_LOCK_1 || OPT_LOCK_2
                 return lock->lk_owner == curthread;
         #else
-                (void)lock;  // suppress warning until code gets written
-                ; // dummy until code gets written
+                (void)lock;     // suppress warning until code gets written
+                                // dummy until code gets written
+                return true; 
         #endif
-        (void)lock;
-        return true;
+
 }
 
 ////////////////////////////////////////////////////////////
