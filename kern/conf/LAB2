@@ -35,3 +35,4 @@ options dumbvm			# Chewing gum and baling wire.
 options hello
 options file_syscalls
 options exit_syscall
+options basicvm
