@@ -1,3 +1,4 @@
+.DS_Store
 /build/install/bin
 /build/install/hostbin
 /build/install/sbin
@@ -6,3 +7,4 @@
 *.o
 /kern/compile/HELLO
 kern/compile/LAB2
+kern/compile/LAB3
