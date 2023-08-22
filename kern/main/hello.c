@@ -18,8 +18,16 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
+#include "opt-lock_1.h"
+#include "opt-lock_2.h"
+
 // 'hello' function for lab 1
 // the prototype is in /kern/include/hello.h
 void hello(void) {
     kprintf("\n\nHello World!\n\n");
+    #if OPT_LOCK_1
+    kprintf("LAB3 - lock implementation version 1\n\n");
+    #elif OPT_LOCK_2
+    kprintf("LAB3 - lock implementation version 2\n\n");
+    #endif
 }
