@@ -460,3 +460,12 @@ defoption file_syscalls
 optfile file_syscalls syscall/file_syscalls.c
 defoption exit_syscall
 optfile exit_syscall syscall/exit_syscall.c
+defoption basicvm
+
+########################################
+#                                      #
+#              Lab 03                  #
+#                                      #
+########################################
+defoption lock_1
+defoption lock_2
