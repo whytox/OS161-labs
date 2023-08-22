@@ -33,6 +33,7 @@
 #include <addrspace.h>
 #include <vm.h>
 #include <proc.h>
+#include "opt-basicvm.h"
 
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
@@ -83,8 +84,14 @@ as_destroy(struct addrspace *as)
 	/*
 	 * Clean up as needed.
 	 */
-
+#if OPT_BASICVM
+	freeppages(as->as_pbase1/PAGE_SIZE, as->as_npages1);
+	freeppages(as->as_pbase2/PAGE_SIZE, as->as_npages2);
+	freeppages(as->as_stackpbase/PAGE_SIZE, DUMBVM_STACKPAGES);
 	kfree(as);
+#else
+	kfree(as);
+#endif
 }
 
 void
