@@ -18,21 +18,40 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
+#include "opt-exit_syscall.h"
+#include "opt-file_syscalls.h"
 #include "opt-lock_1.h"
 #include "opt-lock_2.h"
 #include "opt-cond_var.h"
+#include "opt-waitpid.h"
 
 // 'hello' function for lab 1
 // the prototype is in /kern/include/hello.h
 void hello(void) {
     kprintf("\n\nHello World!\n\n");
+
+    kprintf("Available features:\n");
+    #if OPT_EXIT_SYSCALL
+    kprintf("[lab 2] - exit syscall\n");
+    #endif
+
+    #if OPT_FILE_SYSCALLS
+    kprintf("[lab 2] - file syscalls\n");
+    #endif
+
     #if OPT_LOCK_1
-    kprintf("LAB3 - lock implementation version 1\n\n");
+    kprintf("[lab 3] - lock (semaphore)\n");
     #elif OPT_LOCK_2
-    kprintf("LAB3 - lock implementation version 2\n\n");
+    kprintf("[lab 3] - lock (wait channel)\n");
     #endif
 
     #if OPT_COND_VAR
-    kprintf("Condition variable support\n\n");
+    kprintf("[lab 3] - condition variable\n");
     #endif
+
+    #if OPT_WAITPID
+    kprintf("[lab 4] - waitpit\n");
+    #endif
+
+    kprintf("\n\n");
 }
