@@ -470,3 +470,10 @@ defoption basicvm
 defoption lock_1
 defoption lock_2
 defoption cond_var
+
+########################################
+#                                      #
+#              Lab 04                  #
+#                                      #
+########################################
+defoption waitpid
