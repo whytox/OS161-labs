@@ -20,6 +20,7 @@
 #include "autoconf.h"  // for pseudoconfig
 #include "opt-lock_1.h"
 #include "opt-lock_2.h"
+#include "opt-cond_var.h"
 
 // 'hello' function for lab 1
 // the prototype is in /kern/include/hello.h
@@ -29,5 +30,9 @@ void hello(void) {
     kprintf("LAB3 - lock implementation version 1\n\n");
     #elif OPT_LOCK_2
     kprintf("LAB3 - lock implementation version 2\n\n");
+    #endif
+
+    #if OPT_COND_VAR
+    kprintf("Condition variable support\n\n");
     #endif
 }

@@ -38,3 +38,4 @@ options hello
 #options basicvm
 #options lock_1
 options lock_2
+options cond_var

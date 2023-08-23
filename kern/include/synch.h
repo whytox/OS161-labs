@@ -39,6 +39,7 @@
 #include <thread.h>
 #include "opt-lock_1.h"
 #include "opt-lock_2.h"
+#include "opt-cond_var.h"
 
 /*
  * Dijkstra-style semaphore.
@@ -132,6 +133,13 @@ struct cv {
         char *cv_name;
         // add what you need here
         // (don't forget to mark things volatile as needed)
+        
+        #if OPT_COND_VAR
+                // The wait_channel contains the list of waiting threads
+                struct wchan *cv_wchan;
+                struct spinlock cv_splk;
+                // the lock is managed externally
+        #endif
 };
 
 struct cv *cv_create(const char *name);
