@@ -789,6 +789,8 @@ thread_exit(void)
 		// if we are the last thread of our parent process
 		// destroy the address space
 		as_destroy(cur->t_proc->p_addrspace);
+		cur->t_proc->exited = true;
+		cur->t_proc->exit_code = cur->exit_code;
 	}
 	/*
 	 * Detach from our process. You might need to move this action
