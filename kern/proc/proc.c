@@ -54,6 +54,20 @@
  */
 struct proc *kproc;
 
+#if OPT_WAITPID
+/*
+*	Wait for process exit.
+*/
+int proc_wait(struct proc *p) {
+
+	lock_acquire(p->p_cv_lock);
+	while (!p->exited) {
+		cv_wait(p->p_cv, p->p_cv_lock);
+	}
+	return p->exit_code;
+}
+
+#endif
 /*
  * Create a proc structure.
  */
@@ -82,6 +96,10 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
+	#if OPT_WAITPID
+		proc->p_cv = cv_create(proc->p_name);
+		proc->p_cv_lock = lock_create(proc->p_name);
+	#endif
 	return proc;
 }
 
@@ -167,6 +185,11 @@ proc_destroy(struct proc *proc)
 
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
+
+	#if OPT_WAITPID
+		cv_destroy(proc->p_cv);
+		lock_destroy(proc->p_cv_lock);
+	#endif
 
 	kfree(proc->p_name);
 	kfree(proc);

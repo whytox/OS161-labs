@@ -37,6 +37,8 @@
  */
 
 #include <spinlock.h>
+#include <synch.h>
+#include "opt-waitpid.h"
 
 struct addrspace;
 struct thread;
@@ -71,10 +73,20 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
+	#if OPT_WAITPID
+	bool exited;
+	int exit_code;
+	struct cv *p_cv;
+	struct lock *p_cv_lock; // the lock associated to p_cv
+	#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
+
+#if OPT_WAITPID
+int proc_wait(struct proc *p);
+#endif
 
 /* Call once during system startup to allocate data structures. */
 void proc_bootstrap(void);
