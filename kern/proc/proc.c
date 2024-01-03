@@ -55,34 +55,109 @@
 struct proc *kproc;
 
 #if OPT_WAITPID
+#define MAX_PROC 100
+
+/* To assign a pid to each process we use a simple array of struct proc pointers,
+where the pid is represented by the index. */
+static struct _proc_table
+{
+	struct spinlock lk;					  /* for thread safe access to this struct */
+	struct proc *processes[MAX_PROC + 1]; /* the list of processes, the index is the pid */
+	int last_pid;						  /* tha last pid assigned */
+} proc_table;
+
 /*
-*	Wait for process exit.
-*/
-int proc_wait(struct proc *p) {
+ * Return the proc assigned to that pid.
+ * Used by waitpid(pid_t pid).
+ */
+struct proc *get_proc_by_pid(pid_t pid)
+{
+	spinlock_acquire(&proc_table.lk);
+	struct proc *p = proc_table.processes[(int)pid];
+	KASSERT(p->pid == pid);
+	spinlock_release(&proc_table.lk);
+	return p;
+}
+
+/*
+ * Register a proc in the proc_table and set the proc's pid.
+ */
+void proc_table_add(struct proc *proc)
+{
+	spinlock_acquire(&proc_table.lk);
+	/* First, we need to find a suitable index to store the proc reference,
+	which will then be the proc's pid */
+	int free_index = 0;
+	int curr_index = proc_table.last_pid + 1;
+	if (curr_index > MAX_PROC)
+		curr_index = 1;
+	while (curr_index != proc_table.last_pid)
+	{
+		if (proc_table.processes[curr_index] == NULL)
+		{
+			free_index = curr_index;
+			proc_table.last_pid = free_index;
+			break;
+		}
+		curr_index++;
+		if (curr_index > MAX_PROC)
+			curr_index = 1;
+	}
+
+	proc_table.processes[free_index] = proc;
+	proc->pid = (pid_t)free_index;
+
+	spinlock_release(&proc_table.lk);
+}
+
+/*
+ * Remove a proc from the proc_table.
+ */
+void proc_table_del(struct proc *proc)
+{
+	spinlock_acquire(&proc_table.lk);
+	int pid = proc->pid;
+	KASSERT(proc_table.processes[pid]->pid == pid);
+	proc_table.processes[pid] = NULL;
+	spinlock_release(&proc_table.lk);
+}
+
+/*
+ *	Wait for process exit.
+ */
+int proc_wait(struct proc *p)
+{
+	int exit_code;
 
 	lock_acquire(p->p_cv_lock);
-	while (!p->exited) {
+	while (!p->exited)
+	{
 		cv_wait(p->p_cv, p->p_cv_lock);
 	}
-	return p->exit_code;
+	exit_code = p->exit_code;
+	lock_release(p->p_cv_lock);
+
+	proc_destroy(p);
+	return exit_code;
 }
 
 #endif
 /*
  * Create a proc structure.
  */
-static
-struct proc *
+static struct proc *
 proc_create(const char *name)
 {
 	struct proc *proc;
 
 	proc = kmalloc(sizeof(*proc));
-	if (proc == NULL) {
+	if (proc == NULL)
+	{
 		return NULL;
 	}
 	proc->p_name = kstrdup(name);
-	if (proc->p_name == NULL) {
+	if (proc->p_name == NULL)
+	{
 		kfree(proc);
 		return NULL;
 	}
@@ -96,10 +171,12 @@ proc_create(const char *name)
 	/* VFS fields */
 	proc->p_cwd = NULL;
 
-	#if OPT_WAITPID
-		proc->p_cv = cv_create(proc->p_name);
-		proc->p_cv_lock = lock_create(proc->p_name);
-	#endif
+#if OPT_WAITPID
+	proc->exited = false;
+	proc->p_cv = cv_create(proc->p_name);
+	proc->p_cv_lock = lock_create(proc->p_name);
+	proc_table_add(proc);
+#endif
 	return proc;
 }
 
@@ -109,8 +186,7 @@ proc_create(const char *name)
  * Note: nothing currently calls this. Your wait/exit code will
  * probably want to do so.
  */
-void
-proc_destroy(struct proc *proc)
+void proc_destroy(struct proc *proc)
 {
 	/*
 	 * You probably want to destroy and null out much of the
@@ -130,13 +206,15 @@ proc_destroy(struct proc *proc)
 	 */
 
 	/* VFS fields */
-	if (proc->p_cwd) {
+	if (proc->p_cwd)
+	{
 		VOP_DECREF(proc->p_cwd);
 		proc->p_cwd = NULL;
 	}
 
 	/* VM fields */
-	if (proc->p_addrspace) {
+	if (proc->p_addrspace)
+	{
 		/*
 		 * If p is the current process, remove it safely from
 		 * p_addrspace before destroying it. This makes sure
@@ -172,11 +250,13 @@ proc_destroy(struct proc *proc)
 		 */
 		struct addrspace *as;
 
-		if (proc == curproc) {
+		if (proc == curproc)
+		{
 			as = proc_setas(NULL);
 			as_deactivate();
 		}
-		else {
+		else
+		{
 			as = proc->p_addrspace;
 			proc->p_addrspace = NULL;
 		}
@@ -186,10 +266,11 @@ proc_destroy(struct proc *proc)
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
 
-	#if OPT_WAITPID
-		cv_destroy(proc->p_cv);
-		lock_destroy(proc->p_cv_lock);
-	#endif
+#if OPT_WAITPID
+	cv_destroy(proc->p_cv);
+	lock_destroy(proc->p_cv_lock);
+	proc_table_del(proc);
+#endif
 
 	kfree(proc->p_name);
 	kfree(proc);
@@ -198,13 +279,21 @@ proc_destroy(struct proc *proc)
 /*
  * Create the process structure for the kernel.
  */
-void
-proc_bootstrap(void)
+void proc_bootstrap(void)
 {
+	spinlock_init(&proc_table.lk);
+	for (int i = 0; i <= MAX_PROC; i++)
+	{
+		proc_table.processes[i] = NULL;
+	}
+	proc_table.last_pid = 0;
+
 	kproc = proc_create("[kernel]");
-	if (kproc == NULL) {
+	if (kproc == NULL)
+	{
 		panic("proc_create for kproc failed\n");
 	}
+	/* bootstrap the proc_table */
 }
 
 /*
@@ -219,7 +308,8 @@ proc_create_runprogram(const char *name)
 	struct proc *newproc;
 
 	newproc = proc_create(name);
-	if (newproc == NULL) {
+	if (newproc == NULL)
+	{
 		return NULL;
 	}
 
@@ -235,7 +325,8 @@ proc_create_runprogram(const char *name)
 	 * the only reference to it.)
 	 */
 	spinlock_acquire(&curproc->p_lock);
-	if (curproc->p_cwd != NULL) {
+	if (curproc->p_cwd != NULL)
+	{
 		VOP_INCREF(curproc->p_cwd);
 		newproc->p_cwd = curproc->p_cwd;
 	}
@@ -253,8 +344,7 @@ proc_create_runprogram(const char *name)
  * the timer interrupt context switch, and any other implicit uses
  * of "curproc".
  */
-int
-proc_addthread(struct proc *proc, struct thread *t)
+int proc_addthread(struct proc *proc, struct thread *t)
 {
 	int spl;
 
@@ -280,8 +370,7 @@ proc_addthread(struct proc *proc, struct thread *t)
  * the timer interrupt context switch, and any other implicit uses
  * of "curproc".
  */
-void
-proc_remthread(struct thread *t)
+void proc_remthread(struct thread *t)
 {
 	struct proc *proc;
 	int spl;
@@ -313,7 +402,8 @@ proc_getas(void)
 	struct addrspace *as;
 	struct proc *proc = curproc;
 
-	if (proc == NULL) {
+	if (proc == NULL)
+	{
 		return NULL;
 	}
 

@@ -61,24 +61,26 @@ struct vnode;
  * thread_switch needs to be able to fetch the current address space
  * without sleeping.
  */
-struct proc {
+struct proc
+{
 	char *p_name;			/* Name of this process */
-	struct spinlock p_lock;		/* Lock for this structure */
-	unsigned p_numthreads;		/* Number of threads in this process */
+	struct spinlock p_lock; /* Lock for this structure */
+	unsigned p_numthreads;	/* Number of threads in this process */
 
 	/* VM */
-	struct addrspace *p_addrspace;	/* virtual address space */
+	struct addrspace *p_addrspace; /* virtual address space */
 
 	/* VFS */
-	struct vnode *p_cwd;		/* current working directory */
+	struct vnode *p_cwd; /* current working directory */
 
-	/* add more material here as needed */
-	#if OPT_WAITPID
+/* add more material here as needed */
+#if OPT_WAITPID
 	bool exited;
 	int exit_code;
 	struct cv *p_cv;
-	struct lock *p_cv_lock; // the lock associated to p_cv
-	#endif
+	struct lock *p_cv_lock; /* the lock associated to p_cv */
+	pid_t pid;				/* the pid assigned to the process */
+#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -86,6 +88,9 @@ extern struct proc *kproc;
 
 #if OPT_WAITPID
 int proc_wait(struct proc *p);
+struct proc *get_proc_by_pid(pid_t pid);
+void proc_table_add(struct proc *proc);
+void proc_table_del(struct proc *proc);
 #endif
 
 /* Call once during system startup to allocate data structures. */
@@ -108,6 +113,5 @@ struct addrspace *proc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *proc_setas(struct addrspace *);
-
 
 #endif /* _PROC_H_ */
