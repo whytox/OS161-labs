@@ -30,9 +30,10 @@
 #ifndef _SYSCALL_H_
 #define _SYSCALL_H_
 
-
+#include "opt-waitpid.h"
+#include <types.h>
 #include <cdefs.h> /* for __DEAD */
-struct trapframe; /* from <machine/trapframe.h> */
+struct trapframe;  /* from <machine/trapframe.h> */
 
 /*
  * The system call dispatcher.
@@ -49,8 +50,7 @@ void enter_forked_process(struct trapframe *tf);
 
 /* Enter user mode. Does not return. */
 __DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
-		       vaddr_t stackptr, vaddr_t entrypoint);
-
+							  vaddr_t stackptr, vaddr_t entrypoint);
 
 /*
  * Prototypes for IN-KERNEL entry points for system call implementations.
@@ -62,7 +62,17 @@ int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 /*
  * Lab 2 - Syscalls read and write, exit
  */
-ssize_t sys_write(int fd, const void* buffer, ssize_t len);
-ssize_t sys_read(int fd, void* buffer, ssize_t len);
-void 	sys__exit(int exit_code);
+ssize_t sys_write(int fd, const void *buffer, ssize_t len);
+ssize_t sys_read(int fd, void *buffer, ssize_t len);
+void sys__exit(int exit_code);
+
+#if OPT_WAITPID
+
+/*
+ * Lab 4 - Syscall getpid e waitpid
+ */
+int sys_waitpid(pid_t pid);
+pid_t sys_getpid(void);
+#endif
+
 #endif /* _SYSCALL_H_ */
