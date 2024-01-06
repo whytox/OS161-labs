@@ -39,6 +39,8 @@
 #include <spinlock.h>
 #include <synch.h>
 #include "opt-waitpid.h"
+#include "opt-file_io.h"
+#include <limits.h>
 
 struct addrspace;
 struct thread;
@@ -81,6 +83,10 @@ struct proc
 	struct lock *p_cv_lock; /* the lock associated to p_cv */
 	pid_t pid;				/* the pid assigned to the process */
 #endif
+
+#if OPT_FILE_IO
+	struct vnode *p_vnodes[OPEN_MAX];
+#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -91,6 +97,12 @@ int proc_wait(struct proc *p);
 struct proc *get_proc_by_pid(pid_t pid);
 void proc_table_add(struct proc *proc);
 void proc_table_del(struct proc *proc);
+#endif
+
+#if OPT_FILE_IO
+int proc_add_vnode(struct  proc *proc, struct vnode *vnode);
+int proc_del_vnode(struct proc *proc, int fd);
+struct vnode* proc_find_fd(struct proc* proc, int fd);
 #endif
 
 /* Call once during system startup to allocate data structures. */
