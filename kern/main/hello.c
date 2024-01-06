@@ -50,7 +50,11 @@ void hello(void) {
     #endif
 
     #if OPT_WAITPID
-    kprintf("[lab 4] - waitpit\n");
+    kprintf("[lab 4] - waitpid & getpid\n");
+    #endif
+
+    #if OPT_FILE_IO
+    kprintf("[lab 5] - file descriptor support: open, close, remove syscalls\n         with stdin, stdout and stderr support!");
     #endif
 
     kprintf("\n\n");
