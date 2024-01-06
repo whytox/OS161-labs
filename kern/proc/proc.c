@@ -48,11 +48,51 @@
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
-
+#include <limits.h>
+#include <kern/errno.h>
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
+
+#if OPT_FILE_IO
+#include <vfs.h>
+#include <kern/fcntl.h>
+#include <kern/unistd.h>
+
+int proc_add_vnode(struct proc *proc, struct vnode *vn) {
+
+	int fd = -1;
+	spinlock_acquire(&proc->p_lock);
+	// start from 3 because 0,1,2 are manually added when used
+	for (int i=3; i<OPEN_MAX; i++) {
+		if (proc->p_vnodes[i] == NULL) {
+			fd = i;
+			proc->p_vnodes[fd] = vn;
+			break;
+		}
+	}
+	/* todo - handle error case: Too many open files */
+	spinlock_release(&proc->p_lock);
+	return fd;
+}
+
+int proc_del_vnode(struct proc *proc, int fd) {
+
+	spinlock_acquire(&proc->p_lock);
+	proc->p_vnodes[fd] = NULL;
+	spinlock_release(&proc->p_lock);
+	return 0;
+}
+
+struct vnode *proc_find_fd(struct proc *proc, int fd) {
+	struct vnode *vnode;
+	spinlock_acquire(&proc->p_lock);
+	vnode = proc->p_vnodes[fd];
+	spinlock_release(&proc->p_lock);
+	return vnode;
+}
+#endif
 
 #if OPT_WAITPID
 #define MAX_PROC 100
