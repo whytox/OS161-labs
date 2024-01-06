@@ -31,6 +31,7 @@
 #define _SYSCALL_H_
 
 #include "opt-waitpid.h"
+#include "opt-file_io.h"
 #include <types.h>
 #include <cdefs.h> /* for __DEAD */
 struct trapframe;  /* from <machine/trapframe.h> */
@@ -62,7 +63,7 @@ int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
 /*
  * Lab 2 - Syscalls read and write, exit
  */
-ssize_t sys_write(int fd, const void *buffer, ssize_t len);
+ssize_t sys_write(int fd, void *buffer, ssize_t len);
 ssize_t sys_read(int fd, void *buffer, ssize_t len);
 void sys__exit(int exit_code);
 
@@ -73,6 +74,13 @@ void sys__exit(int exit_code);
  */
 int sys_waitpid(pid_t pid);
 pid_t sys_getpid(void);
+#endif
+
+#if OPT_FILE_IO
+
+int sys_open(const char* pathname, int flags, int mode);
+int sys_close(int fd);
+int sys_remove(char *path);
 #endif
 
 #endif /* _SYSCALL_H_ */
